@@ -3,52 +3,33 @@
 Filtered Logger module
 """
 
-import logging
-import csv
-from typing import List
-
-PII_FIELDS = ('name', 'email', 'phone', 'ssn', 'password')
+import os
+import mysql.connector
+from mysql.connector import errorcode
 
 
-class RedactingFormatter(logging.Formatter):
+def get_db() -> mysql.connector.connection.MySQLConnection:
     """
-    Redacting Formatter class
+    Connect to the MySQL database and return a connection object
     """
+    username = os.getenv('PERSONAL_DATA_DB_USERNAME', 'root')
+    password = os.getenv('PERSONAL_DATA_DB_PASSWORD', '')
+    host = os.getenv('PERSONAL_DATA_DB_HOST', 'localhost')
+    database = os.getenv('PERSONAL_DATA_DB_NAME')
 
-    REDACTION = "***"
-
-    def format(self, record: logging.LogRecord) -> str:
-        """
-        Format the log record by redacting specified fields
-        """
-        message = super().format(record)
-        for field in PII_FIELDS:
-            message = message.replace(field, self.REDACTION)
-        return message
-
-
-def get_logger() -> logging.Logger:
-    """
-    Create and configure a logger object
-    """
-    logger = logging.getLogger('user_data')
-    logger.setLevel(logging.INFO)
-    logger.propagate = False
-    formatter = RedactingFormatter(
-            "[HOLBERTON] %(name)s %(levelname)s %(asctime)-15s: %(message)s")
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(stream_handler)
-    return logger
-
-
-def read_file(filename: str) -> List[dict]:
-    """
-    Read a CSV file and return its content as a list of dictionaries
-    """
-    data = []
-    with open(filename, 'r') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            data.append(dict(row))
-    return data
+    try:
+        db = mysql.connector.connect(
+            user=username,
+            password=password,
+            host=host,
+            database=database
+        )
+        return db
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Error: Access denied. Refer to database credentials.")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("Error: The specified database does not exist.")
+        else:
+            print("Error: Failed to connect to the database.")
+        exit(1)
