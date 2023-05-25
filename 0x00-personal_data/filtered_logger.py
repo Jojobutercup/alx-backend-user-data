@@ -29,5 +29,5 @@ class RedactingFormatter(logging.Formatter):
         for field in self.fields:
             regex = r'({})=([^{}]+)'.format(field, self.SEPARATOR)
             message = re.sub(regex, r'\1=' + self.REDACTION, message)
-        record.message = message
+        record.msg = message
         return super().format(record)
